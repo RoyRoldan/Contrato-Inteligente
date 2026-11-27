@@ -1,0 +1,19 @@
+{
+  "name": "votacion-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@jsr/creit-tech__stellar-wallets-kit": "^2.8.0",
+    "@stellar/stellar-sdk": "latest",
+    "buffer": "^6.0.3",
+    "votacion": "file:../packages/votacion"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}

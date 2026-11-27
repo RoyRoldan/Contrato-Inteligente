@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Votación comunitaria</title>
+<style>
+:root{--bg:#f2f5f3;--card:#fff;--ink:#14232b;--muted:#5a6b72;--line:#cbd6d1;--yes:#0f5c4d;--no:#b5443a;--warn:#fff3d6;--warnink:#6b4a00}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a1f;--card:#17262d;--ink:#e8efec;--muted:#9bb0b6;--line:#2c4048;--yes:#4cc3a8;--no:#e57f74;--warn:#3a2f10;--warnink:#f2d58a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 20px 56px}
+h1{font:700 2rem/1.15 Georgia,"Times New Roman",serif;margin:0 0 6px}
+h2{font:700 1.15rem Georgia,serif;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 24px;max-width:60ch}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:20px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+select,input,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--yes);outline-offset:2px}
+button.primary{background:var(--yes);border-color:var(--yes);color:var(--bg);font-weight:600}
+.hash{font:.8rem ui-monospace,Consolas,monospace;color:var(--muted);margin-top:10px;word-break:break-all}
+.row{display:flex;gap:8px;margin-top:8px}
+.row>input{flex:1}
+.ballot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.ballot button{padding:14px;font-weight:700;border-width:2px}
+.ballot .y{border-color:var(--yes);color:var(--yes)}
+.ballot .n{border-color:var(--no);color:var(--no)}
+.ballot button:disabled{opacity:.4;cursor:not-allowed}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.bar i{display:block;transition:width .3s}
+.bar .by{background:var(--yes)}.bar .bn{background:var(--no)}
+.nums{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-top:6px}
+.top{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.tag{font-size:.8rem;padding:2px 10px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.tag.open{border-color:var(--yes);color:var(--yes)}
+.msg{background:var(--warn);color:var(--warnink);padding:10px 12px;border-radius:6px;margin-bottom:16px;min-height:44px}
+.msg.ok{background:transparent;border:1px solid var(--line);color:var(--muted)}
+ul{margin:0;padding-left:18px;color:var(--muted);font-size:.92rem}
+.log{font:.82rem/1.6 ui-monospace,Consolas,monospace;color:var(--muted);max-height:180px;overflow:auto}
+.note{font-size:.85rem;color:var(--muted);margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+<h1>Votación comunitaria</h1>
+<p class="sub">Demostración visual del contrato. Cambia quién actúa y prueba las reglas: solo miembros votan, una vez por propuesta, y solo mientras esté abierta.</p>
+
+<div class="grid">
+<aside>
+  <div class="card">
+    <h2>Quién actúa</h2>
+    <label for="actor">Cuenta activa</label>
+    <select id="actor"></select>
+  </div>
+  <div class="card" id="adminBox">
+    <h2>Panel del administrador</h2>
+    <label for="newMember">Agregar miembro al padrón</label>
+    <div class="row"><input id="newMember" placeholder="Nombre"><button id="addBtn">Agregar</button></div>
+    <label for="newProp" style="margin-top:14px">Nueva propuesta</label>
+    <input id="newProp" placeholder="¿Qué se vota?">
+    <label for="newDoc" style="margin-top:8px">Documento de respaldo (solo se guarda su huella)</label>
+    <textarea id="newDoc" rows="3" placeholder="Pega el texto del acta"></textarea>
+    <div class="row"><button id="propBtn" class="primary">Crear propuesta</button></div>
+  </div>
+  <div class="card">
+    <h2>Padrón</h2>
+    <ul id="members"></ul>
+  </div>
+</aside>
+
+<section>
+  <div class="msg ok" id="msg" role="status">Elige una cuenta y vota.</div>
+  <div id="props"></div>
+  <div class="card">
+    <h2>Registro de llamadas al contrato</h2>
+    <div class="log" id="log"></div>
+  </div>
+</section>
+</div>
+<p class="note">Esta página simula la lógica del contrato en el navegador; no se conecta a la blockchain. Los nombres de funciones y errores son los mismos que en <code>src/lib.rs</code>.</p>
+</main>
+
+<script>
+// Simulación en memoria de VotingContract (mismas reglas y mismos errores)
+const ADMIN = "Administrador", OUTSIDER = "Persona fuera del padrón";
+const state = { members: new Set(["Ana","Beto","Carla"]), proposals: [], voted: new Set(), count: 0, actor: "Ana" };
+
+const $ = id => document.getElementById(id);
+const log = (text) => { const d=document.createElement("div"); d.textContent=text; $("log").prepend(d); };
+const say = (text, ok) => { const m=$("msg"); m.textContent=text; m.className = ok ? "msg ok" : "msg"; };
+
+// sha256 en hexadecimal (igual que env.crypto().sha256 en el contrato)
+async function sha256hex(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// Funciones del contrato
+const contract = {
+  add_member(caller, name){ if(caller!==ADMIN) throw "NotAdmin"; state.members.add(name); },
+  create_proposal(caller, title, docHash){ if(caller!==ADMIN) throw "NotAdmin"; const id=++state.count; state.proposals.push({id,title,docHash,yes:0,no:0,open:true}); return id; },
+  verify_document(id, hash){ const p=state.proposals.find(x=>x.id===id); if(!p) throw "ProposalNotFound"; return hash===p.docHash; },
+  vote(id, voter, inFavor){
+    if(!state.members.has(voter)) throw "NotAMember";
+    const p = state.proposals.find(x=>x.id===id); if(!p) throw "ProposalNotFound";
+    if(!p.open) throw "ProposalClosed";
+    const k=id+":"+voter; if(state.voted.has(k)) throw "AlreadyVoted";
+    inFavor ? p.yes++ : p.no++; state.voted.add(k);
+  },
+  close_proposal(caller, id){ if(caller!==ADMIN) throw "NotAdmin"; state.proposals.find(x=>x.id===id).open=false; }
+};
+
+const explain = {
+  NotAdmin:"Solo el administrador puede hacer esto.",
+  NotAMember:"Esta cuenta no está en el padrón, así que no puede votar.",
+  ProposalNotFound:"Esa propuesta no existe.",
+  ProposalClosed:"La propuesta está cerrada y ya no recibe votos.",
+  AlreadyVoted:"Esta cuenta ya votó en esta propuesta."
+};
+
+function run(label, fn, okText){
+  try { fn(); log("✔ "+label); say(okText, true); }
+  catch(e){ log("✘ "+label+" → Error::"+e); say(explain[e]||String(e)); }
+  render();
+}
+
+function render(){
+  const a = state.actor;
+  $("actor").innerHTML = [ADMIN,...state.members,OUTSIDER].map(n=>`<option ${n===a?"selected":""}>${n}</option>`).join("");
+  $("adminBox").style.display = a===ADMIN ? "block" : "none";
+  $("members").innerHTML = [...state.members].map(m=>`<li>${m}</li>`).join("");
+  $("props").innerHTML = state.proposals.length ? state.proposals.slice().reverse().map(p=>{
+    const t=p.yes+p.no, py=t?p.yes/t*100:0, pn=t?p.no/t*100:0, did=state.voted.has(p.id+":"+a);
+    return `<article class="card">
+      <div class="top"><h2>${p.title}</h2><span class="tag ${p.open?"open":""}">${p.open?"Abierta":"Cerrada"}</span></div>
+      <div class="bar" aria-hidden="true"><i class="by" style="width:${py}%"></i><i class="bn" style="width:${pn}%"></i></div>
+      <div class="nums"><span>A favor: ${p.yes}</span><span>En contra: ${p.no}</span></div>
+      <div class="hash">Huella del documento (sha256): ${p.docHash}</div>
+      <div class="row"><input data-doc="${p.id}" placeholder="Pega un texto para comprobar si es el documento original"><button data-verify="${p.id}">Verificar</button></div>
+      ${a===ADMIN ? (p.open?`<div class="ballot" style="grid-template-columns:1fr"><button data-close="${p.id}">Cerrar votación</button></div>`:"")
+      : `<div class="ballot"><button class="y" data-v="${p.id}:1">Votar a favor</button><button class="n" data-v="${p.id}:0">Votar en contra</button></div>${did?`<div class="nums">Ya votaste con esta cuenta.</div>`:""}`}
+    </article>`;
+  }).join("") : `<div class="card">Todavía no hay propuestas. Cambia a la cuenta Administrador y crea la primera.</div>`;
+}
+
+$("actor").onchange = e => { state.actor = e.target.value; say("Cuenta activa: "+state.actor, true); render(); };
+$("addBtn").onclick = () => { const n=$("newMember").value.trim(); if(!n) return say("Escribe un nombre para agregar al padrón."); run(`add_member("${n}")`, ()=>contract.add_member(state.actor,n), n+" se agregó al padrón."); $("newMember").value=""; };
+$("propBtn").onclick = async () => {
+  const t=$("newProp").value.trim(), d=$("newDoc").value;
+  if(!t) return say("Escribe de qué trata la propuesta.");
+  if(!d.trim()) return say("Pega el texto del documento de respaldo.");
+  const h = await sha256hex(d);
+  run(`create_proposal("${t}", sha256=${h.slice(0,10)}…)`, ()=>contract.create_proposal(state.actor,t,h), "Propuesta creada con la huella de su documento.");
+  $("newProp").value=""; $("newDoc").value="";
+};
+$("props").onclick = async e => {
+  const v=e.target.dataset.v, c=e.target.dataset.close, vf=e.target.dataset.verify;
+  if(vf){
+    const text = e.target.parentElement.querySelector("input").value;
+    const h = await sha256hex(text);
+    try { const ok = contract.verify_document(+vf, h);
+      log(`verify_document(${vf}) → ${ok}`);
+      say(ok ? "El documento coincide con el original." : "El documento NO coincide: fue alterado o no es el original.", ok);
+    } catch(err){ say(explain[err]||String(err)); }
+    return;
+  }
+  if(v){ const [id,f]=v.split(":"); run(`vote(${id}, ${state.actor}, ${f==="1"})`, ()=>contract.vote(+id,state.actor,f==="1"), "Voto registrado."); }
+  if(c){ run(`close_proposal(${c})`, ()=>contract.close_proposal(state.actor,+c), "Propuesta cerrada."); }
+};
+
+sha256hex("Acta: se aprueba reparar la tubería principal del acueducto.").then(h=>{
+  contract.create_proposal(ADMIN,"Arreglar la tubería principal",h);
+  render();
+});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Votación comunitaria (testnet)</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;max-width:620px;margin:32px auto;padding:0 16px;color:#14232b}
+  h1{font:700 1.8rem Georgia,serif;margin-bottom:4px}
+  section{border:1px solid #cbd6d1;border-radius:10px;padding:16px;margin:16px 0}
+  input,textarea,button{font:inherit;padding:8px 10px;border-radius:6px;border:1px solid #cbd6d1}
+  textarea{width:100%;box-sizing:border-box}
+  button{cursor:pointer}
+  .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  #status{padding:10px 12px;border-radius:6px;background:#eef3f1;min-height:44px}
+  pre{white-space:pre-wrap;word-break:break-all;background:#eef3f1;padding:10px;border-radius:6px}
+</style>
+</head>
+<body>
+  <h1>Votación comunitaria</h1>
+  <p>Conectada al contrato en testnet. Cada voto lo firma tu wallet Freighter.</p>
+  <div id="status" role="status">Conecta tu wallet para empezar.</div>
+
+  <section>
+    <button id="connect">Conectar wallet</button>
+    <span id="account"></span>
+  </section>
+
+  <section>
+    <label for="pid">Número de propuesta</label>
+    <div class="row"><input id="pid" type="number" min="1" value="1"><button id="load">Ver propuesta</button></div>
+    <pre id="proposal">Sin datos todavía.</pre>
+    <div class="row"><button id="yes">Votar a favor</button><button id="no">Votar en contra</button></div>
+  </section>
+
+  <section>
+    <label for="doc">Verificar un documento contra la huella guardada</label>
+    <textarea id="doc" rows="3" placeholder="Pega el texto del acta"></textarea>
+    <div class="row"><button id="verify">Verificar</button></div>
+  </section>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
