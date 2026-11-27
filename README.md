@@ -134,7 +134,7 @@ El script compila el contrato, crea dos cuentas de prueba (`admin` y `bob`) con 
 falsos, despliega el contrato, crea una propuesta firmada, hace votar a Bob, verifica
 el documento y genera los bindings de TypeScript en `packages/votacion`.
 
-**ID del contrato en testnet:** ``
+**ID del contrato en testnet:** `https://stellar.expert/explorer/testnet/contract/CC5O6FJ63CF53ZZM4DFZ7CI5FXVRDZJEUB7EQFCBTZ5ZT5CB4C4BXW5V`
 
 ## Llamarlo desde una app (TypeScript)
 
